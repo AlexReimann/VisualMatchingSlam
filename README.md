@@ -43,5 +43,16 @@ Using the gradient to identify the matching also doesn't help as they will be th
 Can we instead somehow make the matching error be uniformly distributed, somehow taking out the gradient? This sounds weird at first.
 
 The gradient makes it possible to match stuff on a uniform surface. If we remove it somehow, the points will look the same and the matching will not work anymore.  
-So basically the directed illumination only changes the matching problem from the whole surface to the gradient line. Which then leaves us with the classical aperture problme (of optical flow).
+So basically the directed illumination only changes the matching problem from the whole surface to the gradient line. Which then leaves us with the classical aperture problem (of optical flow).
 
+----------------------
+
+###Tackling the arperture problem
+The problem is that multiple points in near vicinity have the same value and thus it can not be determind which points to match. If there is just a line, you don't see if you go up, down or move at all, the image stays the same.  
+But in the actual case the images most likely have a shit lot of information. There is not just one line but stuff all over the place. Looking at how *all* things move gives the solution. Each pixel has multiple possible matches (especially because of noise). Each of these matches can be seen as a vote for a possible movement (this is stolen from how Hough transforms are used).  
+**Each possible match can be used as a cast for a possible movement / transformation**
+
+But ICP does optimization based on given matches. We don't know which are the correct matches so what do we do? Of course, come up with some custom weird scheme where we have no idea if it works or not: Guess the transformation and check if it fits the votings of the points (which we have no idea how far they are away, but whatever). This kind of seems to lead to some bundle adjustment. So basically assume some "random" transformations and check if they would fit, if stuff gets better then...  
+Maybe this is not the right thing? Should use ICP somehow.
+
+Can we use the votings to get a coherent visual flow?
