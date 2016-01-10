@@ -47,12 +47,23 @@ So basically the directed illumination only changes the matching problem from th
 
 ----------------------
 
-###Tackling the arperture problem
-The problem is that multiple points in near vicinity have the same value and thus it can not be determind which points to match. If there is just a line, you don't see if you go up, down or move at all, the image stays the same.  
-But in the actual case the images most likely have a shit lot of information. There is not just one line but stuff all over the place. Looking at how *all* things move gives the solution. Each pixel has multiple possible matches (especially because of noise). Each of these matches can be seen as a vote for a possible movement (this is stolen from how Hough transforms are used).  
-**Each possible match can be used as a cast for a possible movement / transformation**
+###Switching the approach to differential
+As mentioned before slow motion / high frame rate is assumed and thus the change of consecutive frames are "small". Each pixel has a certain noise (with the noise beeing higher at the edges). Calculating the difference between consecutive frames and using a threshold leads to all pixels which have clearly changed their position from one frame to the next because of movement. For this the threshold / noise estimation has to be good (also for edges).  
+Only the resulting pixels have to be matched or actually **can be matched**. But where to match them? As discussed before the matches are not clear because of the aperture problem. Also the movement might introduce new areas and thus pixel which can't be mapped correctly. But these areas should be identifiable (see next chapter). 
 
-But ICP does optimization based on given matches. We don't know which are the correct matches so what do we do? Of course, come up with some custom weird scheme where we have no idea if it works or not: Guess the transformation and check if it fits the votings of the points (which we have no idea how far they are away, but whatever). This kind of seems to lead to some bundle adjustment. So basically assume some "random" transformations and check if they would fit, if stuff gets better then...  
-Maybe this is not the right thing? Should use ICP somehow.
+But anyways we are back to the aprerture problem, but the data we have to look at is smaller and we removed unnecessary computation. 
+Besides the aperture problem there is also the problem of needed subpixel accuracy. Normally this is achieved by having a shitload of matches and then minimization just works something out which gives high accuracy. 
 
-Can we use the votings to get a coherent visual flow?
+The only thing not infected by the aperture problem are feature points. One thing would be a crossing of lines (or corner points actually). 
+
+Can we do a first good estimation and maybe bring ICP or something else back in to figure out the exact thing? (I know i am abusing the word ICP right now, as it works only for matching 3D points and not pixel matches based on color) 
+
+###On matching new areas
+Given an edge and some movement a new area can only appear on one side of the edge (TODO think really hard if this is true). The same is true for area being removed / blocked. An edge always divides foreground and background. The background changes (and makes problems with matching / is not matchable) whereas the foreground stays the same. 
+The changed area should be easily determinded by the difference between the two frames. It is where the change is? Where the most change is? Maybe not so easy after all in the real world
+
+###Abusing the aperture problem
+As stated before the whole image has a gradient because of the lighting. Besides that edges always have a gradient. The aperture problem states that there can't be a change of movement detected in the direction of the line. So we don't get any information along that direction. 
+This can actually be used. We can calculate in which direction the gradient is zero (or in which direction the gradient is maximum). So when doing a match we abolish the directioal part along the zero gradient. So we still get information out of our match but removed the wrong information. With enough matches which have information about other directions, including the former zero gradient, we can estimate the movement. 
+
+This currently is some pseudo idea as it is still about 2D pixel matching and not surfaces or 3D points.
